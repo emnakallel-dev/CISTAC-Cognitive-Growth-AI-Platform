@@ -48,7 +48,7 @@ export function Landing() {
       <div className='pointer-events-none absolute top-1/3 -right-32 h-96 w-96 rounded-full bg-primary/10 blur-3xl' />
 
       <header className='relative mx-auto flex max-w-6xl items-center justify-between px-6 py-5'>
-        <span className='text-lg font-semibold'>BrainPal</span>
+        <span className='text-lg font-semibold'>[Your App Name]</span>
         <div className='flex gap-2'>
           <Button asChild variant='ghost'>
             <Link to='/sign-in'>Sign in</Link>
