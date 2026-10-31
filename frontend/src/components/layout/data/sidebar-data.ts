@@ -53,28 +53,28 @@ export const sidebarData: SidebarData = {
       title: 'General',
       items: [
         {
-          title: 'Dashboard',
+          title: 'Brain Twin', 
           url: '/',
           icon: LayoutDashboard,
         },
         {
-          title: 'Tasks',
+          title: 'Take the test', 
           url: '/tasks',
           icon: ListTodo,
         },
         {
-          title: 'Apps',
+          title: 'Improve', 
           url: '/apps',
           icon: Package,
         },
         {
-          title: 'Chats',
+          title: 'Coach',
           url: '/chats',
           badge: '3',
           icon: MessagesSquare,
         },
         {
-          title: 'Users',
+          title: 'Progress History',
           url: '/users',
           icon: Users,
         },
@@ -195,7 +195,7 @@ export const sidebarData: SidebarData = {
           ],
         },
         {
-          title: 'Help Center',
+          title: 'How it works',
           url: '/help-center',
           icon: HelpCircle,
         },
