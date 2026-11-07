@@ -11,6 +11,8 @@ import { sidebarData } from './data/sidebar-data'
 import { NavGroup } from './nav-group'
 import { NavUser } from './nav-user'
 import { TeamSwitcher } from './team-switcher'
+import { useCurrentUser } from '@/hooks/use-current-user'
+
 
 export function AppSidebar() {
   const { collapsible, variant } = useLayout()
@@ -29,9 +31,25 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={sidebarData.user} />
+        <CurrentNavUser />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
+  )
+}
+
+function CurrentNavUser() {
+  const current = useCurrentUser()
+
+  return (
+   
+    <NavUser
+      user={{
+        name: current.name,
+        email: current.email,
+        avatar: current.avatar,
+      }}
+    />
+ 
   )
 }
