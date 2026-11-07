@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   finished_at TEXT,
   order_json TEXT,
   cursor INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'active',
   coach_events INTEGER NOT NULL DEFAULT 0,
   last_coach_pos INTEGER NOT NULL DEFAULT -99,
   coach_log TEXT NOT NULL DEFAULT '[]'
@@ -58,6 +59,21 @@ CREATE TABLE IF NOT EXISTS task_results (
   UNIQUE (session_id, question_id)
 );
 
+CREATE TABLE IF NOT EXISTS responses (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  question_id INTEGER NOT NULL REFERENCES questions(id),
+  position INTEGER NOT NULL,
+  served_at INTEGER NOT NULL,
+  t_max_ms INTEGER NOT NULL,
+  answered_at INTEGER,
+  t_user_ms INTEGER,
+  option_index INTEGER,
+  correct INTEGER,
+  timed_out INTEGER DEFAULT 0,
+  rapid INTEGER DEFAULT 0,
+  suspect INTEGER DEFAULT 0
+);
 
 CREATE TABLE IF NOT EXISTS profile_snapshots (   -- the Brain Twin history
   id INTEGER PRIMARY KEY AUTOINCREMENT,

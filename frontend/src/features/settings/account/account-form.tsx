@@ -69,6 +69,32 @@ export function AccountForm() {
     showSubmittedData(data)
   }
 
+  async function handleDeleteData() {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete all your personal data? This action cannot be undone.'
+    )
+
+    if (!confirmed) return
+
+    try {
+      const response = await fetch('/api/me/data', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete your data')
+      }
+
+      alert('Your data has been deleted successfully.')
+    } catch (error) {
+      console.error(error)
+      alert('An error occurred while deleting your data.')
+    }
+  }
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-8'>
@@ -122,8 +148,8 @@ export function AccountForm() {
                     >
                       {field.value
                         ? languages.find(
-                            (language) => language.value === field.value
-                          )?.label
+                          (language) => language.value === field.value
+                        )?.label
                         : 'Select language'}
                       <CaretSortIcon className='ms-2 h-4 w-4 shrink-0 opacity-50' />
                     </Button>
@@ -168,6 +194,26 @@ export function AccountForm() {
         />
         <Button type='submit'>Update account</Button>
       </form>
+
+      <div className='mt-10 border-t pt-6'>
+        <h3 className='text-lg font-semibold text-destructive'>
+          Danger Zone
+        </h3>
+
+        <p className='mt-2 text-sm text-muted-foreground'>
+          Permanently delete your personal data and assessment history.
+          This action cannot be undone.
+        </p>
+
+        <Button
+          type='button'
+          variant='destructive'
+          className='mt-4'
+          onClick={handleDeleteData}
+        >
+          Delete my data
+        </Button>
+      </div>
     </Form>
   )
 }
