@@ -1,6 +1,8 @@
 import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
 import { AxiosError } from 'axios'
+import { ClerkProvider } from '@clerk/react'
+import { CLERK_KEY, HAS_CLERK } from '@/lib/clerk-config'
 import {
   QueryCache,
   QueryClient,
@@ -97,7 +99,13 @@ if (!rootElement.innerHTML) {
         <ThemeProvider>
           <FontProvider>
             <DirectionProvider>
-              <RouterProvider router={router} />
+              {HAS_CLERK ? (
+                <ClerkProvider publishableKey={CLERK_KEY}>
+                  <RouterProvider router={router} />
+                </ClerkProvider>
+              ) : (
+                <RouterProvider router={router} />
+              )}
             </DirectionProvider>
           </FontProvider>
         </ThemeProvider>
