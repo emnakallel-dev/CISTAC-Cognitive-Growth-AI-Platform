@@ -20,6 +20,7 @@ import { routeTree } from './routeTree.gen'
 // Styles
 import './styles/index.css'
 
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -100,7 +101,7 @@ if (!rootElement.innerHTML) {
           <FontProvider>
             <DirectionProvider>
               {HAS_CLERK ? (
-                <ClerkProvider publishableKey={CLERK_KEY}>
+                <ClerkProvider publishableKey={CLERK_KEY!}>
                   <RouterProvider router={router} />
                 </ClerkProvider>
               ) : (

@@ -1,12 +1,23 @@
 import 'dotenv/config'
 import express from 'express'
+import { clerkMiddleware, getAuth } from '@clerk/express'
 
 import { DatabaseSync } from 'node:sqlite'
 import { fileURLToPath } from 'node:url'
 import { collaborationScore } from './collab.js'
 
+import assessment from './assessment-routes.js'
+
+import path from 'node:path'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+
+
+const IMAGE_DIR = path.join(__dirname, 'public')
+
 const db = new DatabaseSync(fileURLToPath(new URL('./db/demo.db', import.meta.url)))
-const USER_ID = 'demo-user' // LATER: take from the verified Clerk token
 
 const { LLM_API_KEY, LLM_MODEL } = process.env
 const LLM_BASE_URL = (process.env.LLM_BASE_URL || '').replace(/\/+$/, '')
@@ -19,8 +30,7 @@ if (!LLM_BASE_URL || !LLM_MODEL) {
 
 // Warn early if coach_messages does not have the columns this file uses.
 const cmCols = db.prepare('PRAGMA table_info(coach_messages)').all().map((c) => c.name)
-for (const c of ['user_id', 'role', 'content', 'created_at']) {
-  if (!cmCols.includes(c)) {
+for (const c of ['user_id', 'role', 'content', 'created_at']) {  if (!cmCols.includes(c)) {
     console.error(`coach_messages has no "${c}" column. Found: ${cmCols.join(', ')}`)
   }
 }
@@ -38,7 +48,20 @@ Rules:
 const app = express()
 app.use(express.json({ limit: '50kb' }))
 
+app.use('/api', clerkMiddleware())
+
+app.use('/api', (req, res, next) => {
+  const { isAuthenticated, userId } = getAuth(req)
+
+  if (!isAuthenticated || !userId) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  req.userId = userId
+  next()
+})
 /* ----------------------------- DB helpers ----------------------------- */
+
 
 const loadHistory = (userId, limit = 20) =>
   db
@@ -54,14 +77,27 @@ const saveMessage = (userId, role, content) =>
 function saveCollab(userId) {
   const s = collaborationScore(loadHistory(userId, 40))
   if (!s) return null
+
   const snap = db
     .prepare('SELECT id FROM profile_snapshots WHERE user_id = ? ORDER BY taken_at DESC, id DESC LIMIT 1')
     .get(userId)
+
   const today = new Date().toISOString().slice(0, 10)
+
   const row = db
     .prepare('SELECT id FROM collaboration_scores WHERE user_id = ? AND taken_at = ?')
     .get(userId, today)
-  const v = [s.total, s.clarification, s.critical_verification, s.iteration, s.autonomy, s.responsible_use, s.formula_version]
+
+  const v = [
+    s.total,
+    s.clarification,
+    s.critical_verification,
+    s.iteration,
+    s.autonomy,
+    s.responsible_use,
+    s.formula_version
+  ]
+
   if (row) {
     db.prepare(
       'UPDATE collaboration_scores SET total=?, clarification=?, critical_verification=?, iteration=?, autonomy=?, responsible_use=?, formula_version=? WHERE id=?'
@@ -71,6 +107,7 @@ function saveCollab(userId) {
       'INSERT INTO collaboration_scores (user_id, snapshot_id, taken_at, total, clarification, critical_verification, iteration, autonomy, responsible_use, formula_version) VALUES (?,?,?,?,?,?,?,?,?,?)'
     ).run(userId, snap?.id ?? null, today, ...v)
   }
+
   return s
 }
 
@@ -78,25 +115,32 @@ async function buildContext(userId) {
   const rows = db
     .prepare('SELECT * FROM profile_snapshots WHERE user_id = ? ORDER BY taken_at DESC, id DESC LIMIT 2')
     .all(userId)
+
   if (!rows.length) return null
+
   const [latest, prev] = rows
+
   const line = (k) => {
     const d = prev ? ` (previous: ${prev[k]}%)` : ''
     return `${k} ${latest[k]}% (likely range ${latest[k + '_low']}-${latest[k + '_high']}, from ${latest[k + '_n']} questions)${d}`
   }
+
   const c = db
     .prepare('SELECT * FROM collaboration_scores WHERE user_id = ? ORDER BY taken_at DESC, id DESC LIMIT 1')
     .get(userId)
+
   const collab = c
     ? ` AI collaboration score: ${c.total}/100 (clarification ${c.clarification}, verification ${c.critical_verification}, iteration ${c.iteration}, autonomy ${c.autonomy}, responsible use ${c.responsible_use}). If asked, give one tip on the weakest part.`
     : ''
+
   return (
     `The user's latest results, taken ${latest.taken_at}: ` +
-    ['visual', 'numerical', 'spatial', 'verbal'].map(line).join('; ') +
+    ['logical', 'numerical', 'spatial', 'verbal'].map(line).join('; ') +
     '. Use only these numbers and mention the range when discussing a score.' +
     collab
   )
 }
+
 
 /* -------------------------------- Routes ------------------------------- */
 
@@ -105,9 +149,9 @@ app.post('/api/chat', async (req, res) => {
   if (!text) return res.status(400).json({ error: 'No message provided.' })
 
   try {
-    saveMessage(USER_ID, 'user', text)
-    const messages = loadHistory(USER_ID, 20).map(({ role, content }) => ({ role, content }))
-    const context = await buildContext(USER_ID)
+    saveMessage(req.userId, 'user', text)
+    const messages = loadHistory(req.userId, 20).map(({ role, content }) => ({ role, content }))
+    const context = await buildContext(req.userId)
 
     const fullMessages = [
       { role: 'system', content: SYSTEM_PROMPT },
@@ -143,8 +187,8 @@ app.post('/api/chat', async (req, res) => {
     const reply = data.choices?.[0]?.message?.content
     if (!reply) return res.status(502).json({ error: 'Empty reply from the AI.' })
 
-    saveMessage(USER_ID, 'assistant', reply)
-    res.json({ reply, collaboration: saveCollab(USER_ID) })
+    saveMessage(req.userId, 'assistant', reply)
+    res.json({ reply, collaboration: saveCollab(req.userId) })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Could not reach the AI service.' })
@@ -152,13 +196,12 @@ app.post('/api/chat', async (req, res) => {
 })
 
 app.get('/api/chat/history', (req, res) => {
-  res.json({ messages: loadHistory(USER_ID, 50) })
+  res.json({ messages: loadHistory(req.userId, 50) })
 })
 
 app.get('/api/history', (req, res) => {
   const rows = db
-    .prepare('SELECT * FROM profile_snapshots WHERE user_id = ? ORDER BY taken_at, id')
-    .all(USER_ID)
+.prepare('SELECT * FROM profile_snapshots WHERE user_id = ? ORDER BY taken_at, id')    .all(req.userId)
   const sessions = rows.map((r) => ({
     id: r.id,
     date: r.taken_at,
@@ -175,9 +218,11 @@ app.get('/api/history', (req, res) => {
 
 app.get('/api/collaboration', (req, res) => {
   const rows = db
-    .prepare('SELECT * FROM collaboration_scores WHERE user_id = ? ORDER BY taken_at, id')
-    .all(USER_ID)
+.prepare('SELECT * FROM profile_snapshots WHERE user_id = ? ORDER BY taken_at, id')    .all(req.userId)
   res.json({ scores: rows })
 })
+
+app.use('/api', assessment)
+app.use('/images', express.static(IMAGE_DIR))
 
 app.listen(PORT, () => console.log(`chat-server running on http://localhost:${PORT}`))

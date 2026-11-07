@@ -7,7 +7,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search } from '../search'
 
 type TopNavProps = React.HTMLAttributes<HTMLElement> & {
   links: {

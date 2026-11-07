@@ -40,8 +40,7 @@ const HISTORY_URL = '/api/history'
 
 // TODO: set to the real assessment route once it exists.
 // (Plain location change so it never conflicts with typed router routes.)
-const START_ASSESSMENT_PATH = '/assessment'
-
+const START_ASSESSMENT_PATH = '/tasks/'
 // Set to true if the backend returns scores between 0 and 1 instead of 0 and 100.
 const SCORES_ARE_FRACTIONS = false
 
