@@ -11,32 +11,53 @@ type TEXT NOT NULL,
   policy_version TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );-- data_processing | ai_coach | camera | voice
+
 CREATE TABLE IF NOT EXISTS questions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  dimension TEXT NOT NULL,             
-  difficulty INTEGER NOT NULL,         
+  external_id TEXT UNIQUE,              -- "SPA_024", "1"... lets you re-import without duplicates
+  dimension TEXT NOT NULL,
+  difficulty INTEGER NOT NULL,
   prompt TEXT NOT NULL,
+  image TEXT,                           -- "1.jpg", nullable
   options_json TEXT NOT NULL,
-  correct_answer TEXT NOT NULL,        
+  correct_answer TEXT NOT NULL,         -- never sent to the browser
+  points INTEGER NOT NULL DEFAULT 1,
+  explanation TEXT,                     -- only send after the player answers
   bias_notes TEXT
-);-- visual | numerical | spatial | verbal-- 1..5-- never sent to the browser
+);
+
 CREATE TABLE IF NOT EXISTS sessions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   started_at TEXT NOT NULL,
-  finished_at TEXT
+  finished_at TEXT,
+  order_json TEXT,
+  cursor INTEGER NOT NULL DEFAULT 0,
+  coach_events INTEGER NOT NULL DEFAULT 0,
+  last_coach_pos INTEGER NOT NULL DEFAULT -99,
+  coach_log TEXT NOT NULL DEFAULT '[]'
 );
 
 CREATE TABLE IF NOT EXISTS task_results (
-     id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
   session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   question_id INTEGER NOT NULL REFERENCES questions(id),
   answer_given TEXT,
   is_correct INTEGER NOT NULL,
   response_ms INTEGER,
-  retries INTEGER DEFAULT 0
+  retries INTEGER DEFAULT 0,
+  position INTEGER,
+  served_at INTEGER,
+  t_max_ms INTEGER,
+  timed_out INTEGER NOT NULL DEFAULT 0,
+  rapid INTEGER NOT NULL DEFAULT 0,
+  suspect INTEGER NOT NULL DEFAULT 0,
+  option_index INTEGER,
+  answered_at INTEGER,
+  UNIQUE (session_id, question_id)
 );
+
 
 CREATE TABLE IF NOT EXISTS profile_snapshots (   -- the Brain Twin history
   id INTEGER PRIMARY KEY AUTOINCREMENT,

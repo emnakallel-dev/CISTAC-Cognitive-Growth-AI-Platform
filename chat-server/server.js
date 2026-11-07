@@ -5,6 +5,15 @@ import { DatabaseSync } from 'node:sqlite'
 import { fileURLToPath } from 'node:url'
 import { collaborationScore } from './collab.js'
 
+import assessment from './assessment-routes.js'
+
+import path from 'node:path'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+const IMAGE_DIR = path.join(__dirname, 'public')
+
 const db = new DatabaseSync(fileURLToPath(new URL('./db/demo.db', import.meta.url)))
 const USER_ID = 'demo-user' // LATER: take from the verified Clerk token
 
@@ -179,5 +188,8 @@ app.get('/api/collaboration', (req, res) => {
     .all(USER_ID)
   res.json({ scores: rows })
 })
+
+app.use('/api', assessment)
+app.use('/images', express.static(IMAGE_DIR))
 
 app.listen(PORT, () => console.log(`chat-server running on http://localhost:${PORT}`))
