@@ -45,7 +45,7 @@ Category score : weighted average of question scores, with weights 10 (easy), 20
 AI Collaboration Score : rule-based on the user's chat messages, so it is deterministic and explainable. It needs at least 3 user messages.
 Clarification 20%, critical verification 25%, iteration 20%, autonomy 20%, responsible use 15%
 
-# Team
+## Team
 Emna Kallel
 Nour Teffehi
 Chaima Kharrat
